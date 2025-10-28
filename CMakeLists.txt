@@ -8,14 +8,16 @@ add_subdirectory(googletest)
 
 enable_testing()
 
-add_library(library STATIC
-        library.cpp
-        library.h)
+add_library(library STATIC library.cpp)
 
 add_executable(tests tests.cpp)
 
-target_link_libraries(tests PRIVATE library gtest gtest_main)
+target_include_directories(tests PRIVATE
+        ${gtest_SOURCE_DIR}/include
+        ${gmock_SOURCE_DIR}/include
+)
 
+target_link_libraries(tests PRIVATE library gtest gtest_main)
 
 include(GoogleTest)
 add_test(NAME AllTests COMMAND tests)
