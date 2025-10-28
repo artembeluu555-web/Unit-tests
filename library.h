@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <vector>
@@ -143,62 +144,4 @@ public:
         users.push_back(move(u));
         return ptr;
     }
-#ifndef UNIT_TEST
-    void listUsers() const {
-        for (auto& u : users) u->showRole();
-    }
 };
-
-void printMenu() {
-    cout << "\n=== Menu ===\n";
-    cout << "1. Add book\n2. List catalog\n3. Add student\n4. Add librarian\n5. List users\n0. Exit\n";
-}
-
-int main() {
-    Library lib;
-
-    lib.getCatalog().addBook(PrintedBook(lib.newBookId(),"Book1",Author("Author1"),2020,"History",200));
-    lib.getCatalog().addBook(EBook(lib.newBookId(),"Book2",Author("Author2"),2021,"Poetry",2.5));
-    lib.getCatalog().addBook(AudioBook(lib.newBookId(),"Book3",Author("Author3"),2019,"Drama",3.0));
-
-    int choice;
-    while (true) {
-        printMenu();
-        cout << "Choice: ";
-        if (!(cin >> choice)) { cin.clear(); cin.ignore(1000,'\n'); continue; }
-        cin.ignore();
-        if (choice==0) break;
-
-        if (choice==1) {
-            int type; cout << "Type (1-Printed,2-EBook,3-Audio): "; cin >> type; cin.ignore();
-            string title, author, genre; int year;
-            cout << "Title: "; getline(cin,title);
-            cout << "Author: "; getline(cin,author);
-            cout << "Year: "; cin >> year; cin.ignore();
-            cout << "Genre: "; getline(cin,genre);
-            int id = lib.newBookId();
-            if (type==1) { int pages; cout << "Pages: "; cin >> pages; cin.ignore(); lib.getCatalog().addBook(PrintedBook(id,title,Author(author),year,genre,pages)); }
-            else if (type==2) { double size; cout << "Size MB: "; cin >> size; cin.ignore(); lib.getCatalog().addBook(EBook(id,title,Author(author),year,genre,size)); }
-            else { double dur; cout << "Duration hours: "; cin >> dur; cin.ignore(); lib.getCatalog().addBook(AudioBook(id,title,Author(author),year,genre,dur)); }
-        }
-        else if (choice==2) { lib.getCatalog().listAll(); }
-        else if (choice==3) {
-            string n,f; int y;
-            cout << "Name: "; getline(cin,n);
-            cout << "Faculty: "; getline(cin,f);
-            cout << "Year: "; cin >> y; cin.ignore();
-            lib.addStudent(n,f,y);
-        }
-        else if (choice==4) {
-            string n,id;
-            cout << "Name: "; getline(cin,n);
-            cout << "Employee ID: "; getline(cin,id);
-            lib.addLibrarian(n,id);
-        }
-        else if (choice==5) { lib.listUsers(); }
-    }
-
-    cout << "Exiting...\n";
-    return 0;
-}
-#endif
