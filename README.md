@@ -11,7 +11,9 @@
 Структура проєкту
 Unit-tests/
 ├── tests/                # Тести (GoogleTest)
+
 │   └── test_smoke.cpp
+
 ├── CMakeLists.txt        # Збірка проєкту
 ├── README.md             # Опис проєкту
 └── Звіт_ЛР_Unit_Tests.docx  # Звіт лабораторної роботи
