@@ -1,10 +1,15 @@
 #include <gtest/gtest.h>
 #include "library.h"
+#include <stdexcept>
+#include <chrono>
+#include <string>
+using namespace std;
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
 
 TEST(BookTest, BorrowAndReturn) {
     PrintedBook b(1, "Test", Author("Author"), 2020, "Drama", 300);
@@ -115,10 +120,58 @@ TEST(BookTest, MixedBookTypesPrint) {
     EXPECT_NE(out.find("[Audio]"), string::npos);
 }
 
-TEST(BookTest, BorrowTwice) {
-    PrintedBook b(12, "B", Author("A"), 2022, "Novel", 100);
+
+
+TEST(BookTest, InvalidBookId) {
+    EXPECT_THROW(PrintedBook(0, "Invalid", Author("Anon"), 2020, "Drama", 100), std::invalid_argument);
+}
+
+TEST(CatalogTest, EmptyCatalogSearch) {
+    Catalog c;
+    auto result = c.search([](Book& bk){ return bk.getTitle() == "None"; });
+    EXPECT_EQ(result.size(), 0);
+}
+
+TEST(LibraryTest, BorrowNonExistingBook) {
+    Library lib;
+    EXPECT_THROW(lib.borrowBook(999), std::out_of_range);
+}
+
+TEST(BookTest, BorrowAndReturnCombined) {
+    PrintedBook b(12, "Combined", Author("A"), 2022, "Novel", 150);
     EXPECT_TRUE(b.borrow());
     EXPECT_FALSE(b.borrow());
     b.returnBook();
     EXPECT_TRUE(b.borrow());
+}
+
+TEST(CatalogPerformance, SearchLargeCatalog) {
+    Catalog c;
+    for (int i = 0; i < 50000; ++i)
+        c.addBook(PrintedBook(1000 + i, "Book" + to_string(i), Author("A"), 2000 + (i % 20), "Fiction", 100));
+
+    auto start = chrono::high_resolution_clock::now();
+    auto result = c.search([](Book& bk){ return bk.getTitle() == "Book49999"; });
+    auto end = chrono::high_resolution_clock::now();
+    auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_LT(ms, 100); // має шукати швидко
+}
+
+TEST(LibraryTest, ComplexBorrowAndReturnScenario) {
+    Library lib;
+    auto s = lib.addStudent("Max", "History", 2);
+    auto l = lib.addLibrarian("Olga", "LB01");
+
+    auto id1 = lib.newBookId();
+    auto id2 = lib.newBookId();
+    lib.addBook(PrintedBook(id1, "War and Peace", Author("Tolstoy"), 1869, "Classic", 1200));
+    lib.addBook(EBook(id2, "Algorithms", Author("Knuth"), 1997, "Tech", 3.4));
+
+    EXPECT_NO_THROW(lib.borrowBook(id1));
+    EXPECT_NO_THROW(lib.borrowBook(id2));
+    EXPECT_THROW(lib.borrowBook(999), std::out_of_range);
+
+    EXPECT_TRUE(lib.returnBook(id1));
+    EXPECT_TRUE(lib.returnBook(id2));
 }

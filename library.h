@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <iomanip>
+#include <stdexcept>
 
 using namespace std;
 
@@ -25,15 +26,23 @@ protected:
     string genre;
 public:
     Book(int i, string t, Author a, int y, string g)
-        : id(i), title(move(t)), author(move(a)), year(y), available(true), genre(move(g)) {}
+        : id(i), title(move(t)), author(move(a)), year(y), available(true), genre(move(g)) {
+        if (i <= 0) throw invalid_argument("Book ID must be positive");
+    }
     virtual ~Book() = default;
 
     virtual void printInfo() const = 0;
     virtual unique_ptr<Book> clone() const = 0;
 
-    bool borrow() { if (!available) return false; available = false; return true; }
+    bool borrow() {
+        if (!available) return false;
+        available = false;
+        return true;
+    }
+
     void returnBook() { available = true; }
     string getTitle() const { return title; }
+    int getId() const { return id; }
 };
 
 class PrintedBook : public Book {
@@ -55,7 +64,8 @@ public:
         : Book(i, move(t), move(a), y, move(g)), sizeMB(s) {}
     void printInfo() const override {
         cout << "[EBook] " << title << " (" << year << "), " << author.getName()
-             << ", " << fixed << setprecision(1) << sizeMB << " MB, " << (available ? "available" : "borrowed") << "\n";
+             << ", " << fixed << setprecision(1) << sizeMB << " MB, "
+             << (available ? "available" : "borrowed") << "\n";
     }
     unique_ptr<Book> clone() const override { return make_unique<EBook>(*this); }
 };
@@ -67,7 +77,8 @@ public:
         : Book(i, move(t), move(a), y, move(g)), duration(d) {}
     void printInfo() const override {
         cout << "[Audio] " << title << " (" << year << "), " << author.getName()
-             << ", " << fixed << setprecision(1) << duration << " hours, " << (available ? "available" : "borrowed") << "\n";
+             << ", " << fixed << setprecision(1) << duration << " hours, "
+             << (available ? "available" : "borrowed") << "\n";
     }
     unique_ptr<Book> clone() const override { return make_unique<AudioBook>(*this); }
 };
@@ -76,8 +87,10 @@ class Catalog {
     vector<unique_ptr<Book>> books;
 public:
     void addBook(const Book& b) { books.push_back(b.clone()); }
-    void listAll() const { for (const auto& b : books) b->printInfo(); }
 
+    void listAll() const {
+        for (const auto& b : books) b->printInfo();
+    }
 
     template<typename Pred>
     vector<Book*> search(Pred p) {
@@ -97,7 +110,7 @@ public:
     virtual void showRole() const = 0;
     virtual bool canBorrow() const = 0;
     void borrowBook() { borrowed++; }
-    void returnBook() { if (borrowed>0) borrowed--; }
+    void returnBook() { if (borrowed > 0) borrowed--; }
     string getName() const { return name; }
 };
 
@@ -105,7 +118,8 @@ class Student : public User {
     string faculty;
     int yearStudy;
 public:
-    Student(string n, string f, int y) : User(move(n)), faculty(move(f)), yearStudy(y) {}
+    Student(string n, string f, int y)
+        : User(move(n)), faculty(move(f)), yearStudy(y) {}
     void showRole() const override {
         cout << name << " - Student, " << faculty << ", year " << yearStudy << "\n";
     }
@@ -115,7 +129,8 @@ public:
 class Librarian : public User {
     string employeeId;
 public:
-    Librarian(string n, string id) : User(move(n)), employeeId(move(id)) {}
+    Librarian(string n, string id)
+        : User(move(n)), employeeId(move(id)) {}
     void showRole() const override {
         cout << name << " - Librarian, ID: " << employeeId << "\n";
     }
@@ -128,7 +143,6 @@ class Library {
     int nextBookId = 1;
 public:
     Catalog& getCatalog() { return catalog; }
-
     int newBookId() { return nextBookId++; }
 
     Student* addStudent(string n, string f, int y) {
@@ -143,5 +157,22 @@ public:
         Librarian* ptr = u.get();
         users.push_back(move(u));
         return ptr;
+    }
+
+    void addBook(const Book& b) {
+        catalog.addBook(b);
+    }
+
+    bool borrowBook(int id) {
+        auto found = catalog.search([id](Book& b) { return b.getId() == id; });
+        if (found.empty()) throw out_of_range("Book not found");
+        return found[0]->borrow();
+    }
+
+    bool returnBook(int id) {
+        auto found = catalog.search([id](Book& b) { return b.getId() == id; });
+        if (found.empty()) throw out_of_range("Book not found");
+        found[0]->returnBook();
+        return true;
     }
 };
